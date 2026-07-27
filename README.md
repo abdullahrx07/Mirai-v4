@@ -1,4 +1,4 @@
-# MARIA CHATBOT (v3)
+# Mirai v4 (Mari@boT)
 
 <p align="center">
     <a href="https://github.com/rxabdullah007/Maria-v3">
