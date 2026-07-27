@@ -11,11 +11,6 @@
     An extremely powerful, highly-optimized Facebook Messenger Chatbot made by <b>rX Abdullah</b>. Built on Node.js (v20) and featuring modern database management, self-healing listeners, and automatic updating.
 </p>
 
-<p align="center">
-	<img alt="size" src="https://img.shields.io/github/repo-size/rxabdullah007/Mirai-v4.svg?style=flat-square&label=size">
-	<img alt="code-version" src="https://img.shields.io/badge/dynamic/json?color=red&label=code%20version&prefix=v&query=%24.version&url=https%3A%2F%2Fraw.githubusercontent.com%2FmiraiPr0ject%2Fmiraiv2%2Fmaster%2Fpackage.json&style=flat-square">
-    <a href="https://github.com/rxabdullah007/Maria-v3/commits"><img alt="commits" src="https://img.shields.io/github/commit-activity/m/rxabdullah007/Maria-v3.svg?label=commit&style=flat-square"></a>
-</p>
 
 ---
 
