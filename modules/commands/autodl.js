@@ -5,36 +5,105 @@ const { alldown } = require("rx-dawonload");
 
 module.exports.config = {
     name: "autodl",
-    version: "2.1.1",
-    credits: "rX Abdullah",
+    version: "2.2.0",
+    credits: "rX",
     hasPermission: 0,
     description: "Auto detect any link and ask for download confirm",
-    usePrefix: false,
+    usePrefix: true,
     commandCategory: "utility",
-    usages: "",
+    usages: "[on/off]",
     cooldowns: 2
 };
 
-module.exports.run = async function () {};
+// -------------------------
+// 💾 Storage helpers (per-thread on/off, default OFF)
+// -------------------------
+const dataDir = path.join(__dirname, "cache");
+const dataFile = path.join(dataDir, "autodl_status.json");
+
+function loadStatus() {
+    try {
+        fs.ensureDirSync(dataDir);
+        if (!fs.existsSync(dataFile)) {
+            fs.writeJsonSync(dataFile, {});
+            return {};
+        }
+        return fs.readJsonSync(dataFile);
+    } catch (e) {
+        console.log("autodl loadStatus error:", e);
+        return {};
+    }
+}
+
+function saveStatus(statusObj) {
+    try {
+        fs.ensureDirSync(dataDir);
+        fs.writeJsonSync(dataFile, statusObj, { spaces: 2 });
+    } catch (e) {
+        console.log("autodl saveStatus error:", e);
+    }
+}
+
+// Default OFF -> only true means enabled
+function isEnabled(threadID) {
+    const status = loadStatus();
+    return status[threadID] === true;
+}
 
 // -------------------------
-// 🔥 Auto Detect Link
+// ⚙️ Command: autodl on / off
+// -------------------------
+module.exports.run = async function ({ api, event, args }) {
+    const threadID = event.threadID;
+    const mode = (args[0] || "").toLowerCase();
+
+    if (!["on", "off"].includes(mode)) {
+        const current = isEnabled(threadID) ? "ON ✅" : "OFF ❌";
+        return api.sendMessage(
+            `⚙️ Autodl current status: ${current}\n\nUsage:\n➜ autodl on\n➜ autodl off`,
+            threadID
+        );
+    }
+
+    const status = loadStatus();
+    status[threadID] = mode === "on";
+    saveStatus(status);
+
+    return api.sendMessage(
+        mode === "on"
+            ? "✅ Autodl has been enabled for this thread."
+            : "❌ Autodl has been disabled for this thread.",
+        threadID
+    );
+};
+
+// -------------------------
+// 🔥 Auto Detect Link (Only: FB, Insta, TikTok, YouTube, Pinterest)
 // -------------------------
 module.exports.handleEvent = async function ({ api, event }) {
+    const threadID = event.threadID;
+
+    // Default OFF: skip if not enabled for this thread
+    if (!isEnabled(threadID)) return;
+
     const content = event.body ? event.body.trim() : "";
     if (!content.startsWith("http")) return;
 
-    // Detect Platform
-    let site = "Unknown";
+    // Detect Platform (only supported ones)
+    let site = null;
     if (content.includes("youtube.com") || content.includes("youtu.be")) site = "YouTube";
     else if (content.includes("tiktok.com")) site = "TikTok";
     else if (content.includes("instagram.com")) site = "Instagram";
-    else if (content.includes("facebook.com")) site = "Facebook";
+    else if (content.includes("facebook.com") || content.includes("fb.watch")) site = "Facebook";
+    else if (content.includes("pinterest.com") || content.includes("pin.it")) site = "Pinterest";
+
+    // Not a supported platform -> ignore silently
+    if (!site) return;
 
     // Ask for confirmation
     api.sendMessage(
         `🔍 Platform detected: ${site}\n\n❮ React ❤ this message to start download ❯.`,
-        event.threadID,
+        threadID,
         (err, info) => {
             if (err) return;
 
@@ -82,7 +151,10 @@ module.exports.handleReaction = async function ({ api, event, handleReaction }) 
         // Download buffer
         const buffer = (await axios.get(dlUrl, { responseType: "arraybuffer" })).data;
         const safeTitle = title.replace(/[^\w\s]/gi, "_");
-        const filePath = path.join(__dirname, "cache", `${safeTitle}.mp4`);
+
+        const cacheDir = path.join(__dirname, "cache");
+        fs.ensureDirSync(cacheDir);
+        const filePath = path.join(cacheDir, `${safeTitle}.mp4`);
         fs.writeFileSync(filePath, buffer);
 
         // Send downloaded file
